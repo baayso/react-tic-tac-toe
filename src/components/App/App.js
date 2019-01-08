@@ -1,5 +1,5 @@
 import React from 'react';
-import logo from '../../assest/logo.svg';
+import logo from 'assest/logo.svg';
 import './App.css';
 import Game from '../Game/Game';
 import Clock from '../Clock/Clock';
