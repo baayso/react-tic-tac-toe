@@ -3,6 +3,7 @@ import logo from 'assest/logo.svg';
 import './App.css';
 import Game from '../Game/Game';
 import Clock from '../Clock/Clock';
+import Video from "../Video/Video";
 
 class App extends React.Component {
   render() {
@@ -13,6 +14,7 @@ class App extends React.Component {
           <div>
             <Clock/>
             <Game/>
+            <Video/>
           </div>
         </header>
       </div>
