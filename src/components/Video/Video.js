@@ -1,9 +1,14 @@
 import React, {Component} from 'react'
+import './Video.css'
 
 export default class Video extends Component {
 
   constructor(props) {
     super(props);
+
+    this.gotLocalMediaStream = this.gotLocalMediaStream.bind(this);
+    this.handleLocalMediaStreamError = this.handleLocalMediaStreamError.bind(this);
+
     this.state = {
       mediaStreamConstraints: {
         video: {
@@ -31,6 +36,12 @@ export default class Video extends Component {
         options: [],
         defaultValue: '',
       },
+      canvas: {
+        width: 1280,
+        height: 720,
+        class: '',
+      },
+      defaultFilter: '',
     };
   }
 
@@ -117,24 +128,52 @@ export default class Video extends Component {
     this.setState(newState);
   };
 
+  handleChangeOfFilter = e => {
+    const value = e.target.value;
+
+    const newState = Object.assign({}, this.state);
+    newState.defaultFilter = value;
+    newState.canvas.class = value;
+
+    this.setState(newState);
+  };
+
   // 采集音视频数据
-  static collect(mediaStreamConstraints) {
+  collect(mediaStreamConstraints) {
     navigator.mediaDevices.getUserMedia(mediaStreamConstraints)
-      .then(Video.gotLocalMediaStream)
-      .catch(Video.handleLocalMediaStreamError);
+      .then(this.gotLocalMediaStream)
+      .catch(this.handleLocalMediaStreamError);
   }
 
-  static gotLocalMediaStream(mediaStream) {
-    const localVideo = document.querySelector('#video');
-    localVideo.srcObject = mediaStream;
+  gotLocalMediaStream(mediaStream) {
+    this.player.srcObject = mediaStream;
   }
 
-  static handleLocalMediaStreamError(error) {
+  handleLocalMediaStreamError(error) {
     console.log('navigator.getUserMedia error: ', error);
+    console.log(this.state);
+  }
+
+  take() {
+    this.picture.getContext('2d')
+      .drawImage(this.player, 0, 0, this.state.canvas.width, this.state.canvas.height);
+  }
+
+  save() {
+    Video.download(this.picture.toDataURL(this.picture.toDataURL("image/jpeg")));
+  }
+
+  static download(url) {
+    const oA = document.createElement('a');
+    oA.download = 'photo'; // 设置下载的文件名，默认是'下载'
+    oA.href = url;
+    document.body.appendChild(oA);
+    oA.click();
+    oA.remove(); // 下载之后把创建的元素删除
   }
 
   render() {
-    Video.collect(this.state.mediaStreamConstraints);
+    this.collect(this.state.mediaStreamConstraints);
 
     const audioInputOptions = this.state.audioInput.options;
     const videoInputOptions = this.state.videoInput.options;
@@ -191,9 +230,28 @@ export default class Video extends Component {
           </label>
         </form>
 
+        <button onClick={() => this.take()}>拍照</button>
+        <button onClick={() => this.save()}>保存照片</button>
+
+        <label>
+          滤镜:
+          <select value={this.state.defaultFilter} onChange={this.handleChangeOfFilter}>
+            <option value="none">None</option>
+            <option value="blur">blur</option>
+            <option value="grayscale">Grayscale</option>
+            <option value="invert">Invert</option>
+            <option value="sepia">sepia</option>
+          </select>
+        </label>
+
         <br/>
 
-        <video id="video" autoPlay playsInline>您的浏览器不支持视频播放！</video>
+        <video ref={ref => (this.player = ref)} autoPlay playsInline>您的浏览器不支持视频播放！</video>
+
+        <canvas ref={ref => (this.picture = ref)}
+                width={this.state.canvas.width}
+                height={this.state.canvas.height}
+                className={this.state.canvas.class}><p>您的浏览器不支持Canvas标签！</p></canvas>
       </div>
     );
   }

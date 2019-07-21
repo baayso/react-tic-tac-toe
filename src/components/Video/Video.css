@@ -1,0 +1,24 @@
+.none {
+  -webkit-filter: none; /* Chrome, Safari, Opera */
+  filter: none;
+}
+
+.blur {
+  -webkit-filter: blur(3px); /* Chrome, Safari, Opera */
+  filter: blur(3px);
+}
+
+.grayscale {
+  -webkit-filter: grayscale(1); /* Chrome, Safari, Opera */
+  filter: grayscale(1);
+}
+
+.invert {
+  -webkit-filter: invert(1); /* Chrome, Safari, Opera */
+  filter: invert(1);
+}
+
+.sepia {
+  -webkit-filter: sepia(1); /* Chrome, Safari, Opera */
+  filter: sepia(1);
+}
