@@ -46,6 +46,17 @@ export default class Video extends Component {
   }
 
   componentDidMount() {
+    this.btnPauseRecord.disabled = true;
+    this.btnResumeRecord.disabled = true;
+    this.btnStopRecord.disabled = true;
+
+    this.initDevices();
+  }
+
+  componentDidUpdate() {
+  }
+
+  initDevices() {
     // 判断浏览器是否支持这些 API
     if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
       console.log("enumerateDevices() not supported.");
@@ -94,9 +105,6 @@ export default class Video extends Component {
       .catch(function (err) {
         console.log(err.name + ": " + err.message);
       });
-  }
-
-  componentDidUpdate() {
   }
 
   handleChangeOfAudioInput = e => {
@@ -154,6 +162,7 @@ export default class Video extends Component {
     console.log(this.state);
   }
 
+  // 拍照
   take() {
     const defaultFilter = this.state.defaultFilter;
     const ctx = this.picture.getContext('2d');
@@ -180,17 +189,125 @@ export default class Video extends Component {
     ctx.drawImage(this.player, 0, 0, this.state.canvas.width, this.state.canvas.height);
   }
 
+  // 保存照片
   save() {
-    Video.download(this.picture.toDataURL(this.picture.toDataURL("image/jpeg")));
+    const url = this.picture.toDataURL(this.picture.toDataURL("image/jpeg"));
+    Video.download(url, 'photo');
   }
 
-  static download(url) {
+  static download(url, fileName) {
     const oA = document.createElement('a');
-    oA.download = 'photo'; // 设置下载的文件名，默认是'下载'
+    oA.download = fileName; // 设置下载的文件名，默认是'下载'
     oA.href = url;
+    oA.style.display = 'none';
     document.body.appendChild(oA);
     oA.click();
     oA.remove(); // 下载之后把创建的元素删除
+  }
+
+  // 当该函数被触发后，将数据压入到 blob 中
+  handleDataAvailable = e => {
+    if (e && e.data && e.data.size > 0) {
+      this.recordBuffer.push(e.data);
+    }
+  };
+
+  // 初始化录制参数
+  initRecord() {
+    // 设置录制下来的多媒体格式
+    const options = {
+      mimeType: 'video/webm;codecs=vp8'
+    };
+
+    // 判断浏览器是否支持录制
+    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+      console.error(`${options.mimeType} is not supported!`);
+      return;
+    }
+
+    const stream = this.player.captureStream(30); // 录制帧率30FPS
+
+    this.mediaRecorder = null;
+    try {
+      // 创建录制对象
+      this.mediaRecorder = new MediaRecorder(stream, options);
+    } catch (e) {
+      console.error('Failed to create MediaRecorder:', e);
+    }
+  }
+
+  // 开始录制
+  startRecord() {
+    this.recordBuffer = [];
+
+    if (!this.mediaRecorder) {
+      this.initRecord();
+    }
+
+    if (this.mediaRecorder) {
+      this.btnStartRecord.disabled = true;
+      this.btnPauseRecord.disabled = false;
+      this.btnResumeRecord.disabled = true;
+      this.btnStopRecord.disabled = false;
+
+      // 当有音视频数据来了之后触发该事件
+      this.mediaRecorder.ondataavailable = this.handleDataAvailable;
+      // 开始录制
+      this.mediaRecorder.start(10);
+    }
+  }
+
+  // 暂停录制
+  pauseRecord() {
+    this.btnPauseRecord.disabled = true;
+    this.btnResumeRecord.disabled = false;
+
+    this.mediaRecorder.pause();
+  }
+
+  // 恢复录制
+  resumeRecord() {
+    this.btnPauseRecord.disabled = false;
+    this.btnResumeRecord.disabled = true;
+
+    this.mediaRecorder.resume();
+  }
+
+  // 结束录制
+  stopRecord() {
+    this.btnStartRecord.disabled = false;
+    this.btnPauseRecord.disabled = true;
+    this.btnResumeRecord.disabled = true;
+    this.btnStopRecord.disabled = true;
+
+    this.mediaRecorder.stop();
+  }
+
+  // 回放录制文件
+  recPlay() {
+    if (!this.recordBuffer) {
+      alert("尚未开始录制");
+      return;
+    }
+
+    let blob = new Blob(this.recordBuffer, {type: 'video/webm'});
+    this.recVideo.src = window.URL.createObjectURL(blob);
+    this.recVideo.srcObject = null;
+    this.recVideo.controls = true;
+    this.recVideo.play();
+  }
+
+  // 下载录制文件
+  downloadRecord() {
+    if (!this.recordBuffer) {
+      alert("尚未开始录制");
+      return;
+    }
+
+    let blob = new Blob(this.recordBuffer, {type: 'video/webm'});
+    let url = window.URL.createObjectURL(blob);
+
+    Video.download(url, 'video.mp4');
   }
 
   render() {
@@ -251,9 +368,6 @@ export default class Video extends Component {
           </label>
         </form>
 
-        <button onClick={() => this.take()}>拍照</button>
-        <button onClick={() => this.save()}>保存照片</button>
-
         <label>
           滤镜:
           <select value={this.state.defaultFilter} onChange={this.handleChangeOfFilter}>
@@ -265,6 +379,30 @@ export default class Video extends Component {
           </select>
         </label>
 
+        <button onClick={() => this.take()}>拍照</button>
+        <button onClick={() => this.save()}>保存照片</button>
+
+        <br/>
+
+        <button ref={node => (this.btnStartRecord = node)}
+                onClick={() => this.startRecord()}>
+          开始录制
+        </button>
+        <button ref={node => (this.btnPauseRecord = node)}
+                onClick={() => this.pauseRecord()}>
+          暂停录制
+        </button>
+        <button ref={node => (this.btnResumeRecord = node)}
+                onClick={() => this.resumeRecord()}>
+          恢复录制
+        </button>
+        <button ref={node => (this.btnStopRecord = node)}
+                onClick={() => this.stopRecord()}>
+          结束录制
+        </button>
+        <button onClick={() => this.recPlay()}>回放录制文件</button>
+        <button onClick={() => this.downloadRecord()}>下载录制文件</button>
+
         <br/>
 
         <video ref={node => (this.player = node)} autoPlay playsInline>您的浏览器不支持视频播放！</video>
@@ -273,6 +411,8 @@ export default class Video extends Component {
                 width={this.state.canvas.width}
                 height={this.state.canvas.height}
                 className={this.state.canvas.class}><p>您的浏览器不支持Canvas标签！</p></canvas>
+
+        <video ref={node => (this.recVideo = node)}>您的浏览器不支持视频播放！</video>
       </div>
     );
   }
