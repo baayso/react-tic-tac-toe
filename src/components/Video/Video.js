@@ -54,14 +54,14 @@ export default class Video extends Component {
 
     const that = this;
 
-    // 枚举 cameras and microphones.
+    // 枚举 cameras 和 microphones
     navigator.mediaDevices.enumerateDevices()
       .then(function (devices) {
         const audioInputOptions = [];
         const videoInputOptions = [];
         const audioOutputOptions = [];
 
-        // 打印出每一个设备的信息
+        // 设备信息
         devices.forEach(function (deviceInfo) {
           console.log(`${deviceInfo.kind}: ${deviceInfo.label}  id = ${deviceInfo.deviceId}`);
 
@@ -133,7 +133,7 @@ export default class Video extends Component {
 
     const newState = Object.assign({}, this.state);
     newState.defaultFilter = value;
-    newState.canvas.class = value;
+    // newState.canvas.class = value;
 
     this.setState(newState);
   };
@@ -155,8 +155,29 @@ export default class Video extends Component {
   }
 
   take() {
-    this.picture.getContext('2d')
-      .drawImage(this.player, 0, 0, this.state.canvas.width, this.state.canvas.height);
+    const defaultFilter = this.state.defaultFilter;
+    const ctx = this.picture.getContext('2d');
+
+    // https://developer.mozilla.org/zh-CN/docs/Web/API/CanvasRenderingContext2D/filter
+    // 滤镜函数: https://developer.mozilla.org/zh-CN/docs/Web/CSS/filter-function
+
+    if (defaultFilter === 'blur') {
+      ctx.filter = 'blur(2px)';
+    }
+    else if (defaultFilter === 'grayscale') {
+      ctx.filter = 'grayscale(1)';
+    }
+    else if (defaultFilter === 'invert') {
+      ctx.filter = 'invert(1)';
+    }
+    else if (defaultFilter === 'sepia') {
+      ctx.filter = 'sepia(1)';
+    }
+    else {
+      ctx.filter = 'none';
+    }
+
+    ctx.drawImage(this.player, 0, 0, this.state.canvas.width, this.state.canvas.height);
   }
 
   save() {
@@ -236,19 +257,19 @@ export default class Video extends Component {
         <label>
           滤镜:
           <select value={this.state.defaultFilter} onChange={this.handleChangeOfFilter}>
-            <option value="none">None</option>
-            <option value="blur">blur</option>
-            <option value="grayscale">Grayscale</option>
-            <option value="invert">Invert</option>
-            <option value="sepia">sepia</option>
+            <option value="none">无</option>
+            <option value="blur">模糊(毛玻璃)</option>
+            <option value="grayscale">黑白</option>
+            <option value="invert">反转颜色</option>
+            <option value="sepia">棕褐色</option>
           </select>
         </label>
 
         <br/>
 
-        <video ref={ref => (this.player = ref)} autoPlay playsInline>您的浏览器不支持视频播放！</video>
+        <video ref={node => (this.player = node)} autoPlay playsInline>您的浏览器不支持视频播放！</video>
 
-        <canvas ref={ref => (this.picture = ref)}
+        <canvas ref={node => (this.picture = node)}
                 width={this.state.canvas.width}
                 height={this.state.canvas.height}
                 className={this.state.canvas.class}><p>您的浏览器不支持Canvas标签！</p></canvas>
